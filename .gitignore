@@ -1,0 +1,22 @@
+# Gradle
+.gradle/
+build/
+app/build/
+!gradle/wrapper/gradle-wrapper.properties
+
+# Local config that should never be committed
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+.DS_Store
+
+# Generated wrapper binary/scripts - see README for why these aren't committed
+gradlew
+gradlew.bat
+gradle/wrapper/gradle-wrapper.jar
+
+# Signing
+*.jks
+*.keystore
