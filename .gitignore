@@ -20,3 +20,4 @@ gradle/wrapper/gradle-wrapper.jar
 # Signing
 *.jks
 *.keystore
+keystore.properties
