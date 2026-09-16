@@ -29,6 +29,7 @@ import javax.inject.Inject
 
 private enum class ImageSetupPhase { PICK_POOL, CHOOSE_SEQUENCE }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImageSequenceSetupScreen(
     packageName: String,
