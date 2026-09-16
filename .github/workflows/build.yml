@@ -26,6 +26,18 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # The legacy standalone "tools" package no longer exists in the SDK
+          # repository (sdkmanager fails with "Failed to find package 'tools'"
+          # if it's requested) - only ask for packages that still exist and
+          # match compileSdk/targetSdk = 35 in app/build.gradle.kts.
+          packages: "platform-tools platforms;android-35 build-tools;35.0.0"
+
+      # Belt-and-suspenders: android-actions/setup-android exports ANDROID_HOME
+      # as an env var for later steps, but writing local.properties too avoids
+      # any AGP/Gradle-version combination that expects it explicitly.
+      - name: Write local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       # Provisions a full Gradle installation and puts it on PATH as `gradle`,
       # with build-cache support - used instead of a committed gradlew wrapper.
