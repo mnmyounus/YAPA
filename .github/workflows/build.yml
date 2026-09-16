@@ -63,6 +63,24 @@ jobs:
           path: ${{ steps.locate_apk.outputs.apk_path }}
           retention-days: 30
 
+      # Runs on every push to main: keeps a single rolling "latest" pre-release
+      # updated with the newest debug APK, so you get a Release without tagging.
+      - name: Publish rolling "latest" release (main branch pushes)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          files: ${{ steps.locate_apk.outputs.apk_path }}
+          prerelease: true
+          name: "YALA latest (debug, unsigned)"
+          body: |
+            Automatically updated on every push to main with the newest debug build.
+            This APK is **unsigned with a debug key** and is intended for testing/sideloading only.
+            For a fixed, versioned release, push a tag like `v1.0.0`.
+            Developed by MNM YOUNUS.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       # Only runs when the workflow was triggered by a version tag (e.g. v1.0.0)
       - name: Create GitHub Release with APK asset
         if: startsWith(github.ref, 'refs/tags/v')
