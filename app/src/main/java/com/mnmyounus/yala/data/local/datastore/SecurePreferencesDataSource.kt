@@ -45,6 +45,18 @@ class SecurePreferencesDataSource @Inject constructor(
         onboardedFlow.value = complete
     }
 
+    // 0 = LIGHT, 1 = DARK, 2 = SYSTEM (matches AppThemeMode.ordinal) - stored
+    // here, not in plain DataStore, purely so the whole app shares one small
+    // preferences store instead of two.
+    private val themeModeFlow = MutableStateFlow(prefs.getInt(KEY_THEME_MODE, DEFAULT_THEME_MODE))
+
+    fun observeThemeMode() = themeModeFlow.asStateFlow()
+
+    fun setThemeMode(ordinal: Int) {
+        prefs.edit().putInt(KEY_THEME_MODE, ordinal).apply()
+        themeModeFlow.value = ordinal
+    }
+
     fun saveGlobalCredential(credential: LockCredential) =
         prefs.edit().putString(KEY_GLOBAL_CREDENTIAL, credential.toJson()).apply()
 
@@ -69,6 +81,8 @@ class SecurePreferencesDataSource @Inject constructor(
 
     private companion object {
         const val KEY_ONBOARDED = "onboarded"
+        const val KEY_THEME_MODE = "theme_mode"
+        const val DEFAULT_THEME_MODE = 2 // AppThemeMode.SYSTEM.ordinal
         const val KEY_GLOBAL_CREDENTIAL = "global_credential"
         const val KEY_APP_CREDENTIAL_PREFIX = "app_credential_"
         const val KEY_RECOVERY_HASH = "recovery_hash"

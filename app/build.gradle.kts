@@ -6,18 +6,6 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-// Release signing is optional and file-driven: if keystore.properties exists
-// (created locally by you, or written by CI from a secret - see README),
-// release builds get signed. Without it, `assembleRelease` still succeeds,
-// it just produces an unsigned release APK. keystore.properties is gitignored
-// and must never be committed - see keystore.properties.example for the format.
-val keystorePropertiesFile = rootProject.file("keystore.properties")
-val keystoreProperties = java.util.Properties()
-val hasSigningConfig = keystorePropertiesFile.exists()
-if (hasSigningConfig) {
-    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
-}
-
 android {
     namespace = "com.mnmyounus.yala"
     compileSdk = 35
@@ -31,24 +19,10 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
-    signingConfigs {
-        if (hasSigningConfig) {
-            create("release") {
-                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-            }
-        }
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            if (hasSigningConfig) {
-                signingConfig = signingConfigs.getByName("release")
-            }
         }
         debug {
             isDebuggable = true

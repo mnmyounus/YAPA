@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  IMPORTANT: android:packageNames is intentionally omitted, not set to "".
+  An empty string tells Android to match zero packages, so the service
+  receives no events at all and app locking silently does nothing. Omitting
+  the attribute entirely means "watch every package", which is what an app
+  locker needs.
+-->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagRetrieveInteractiveWindows|flagReportViewIds"
-    android:canRetrieveWindowContent="true"
+    android:canRetrieveWindowContent="false"
     android:description="@string/accessibility_service_description"
-    android:notificationTimeout="0"
-    android:packageNames=""
+    android:notificationTimeout="100"
     android:settingsActivity="com.mnmyounus.yala.presentation.MainActivity" />
+

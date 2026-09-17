@@ -37,4 +37,8 @@ class LockRepositoryImpl @Inject constructor(
     override fun isOnboarded(): Flow<Boolean> = prefs.observeOnboarded()
 
     override suspend fun setOnboarded(complete: Boolean) = prefs.setOnboarded(complete)
+
+    override fun observeThemeMode(): Flow<Int> = prefs.observeThemeMode()
+
+    override suspend fun setThemeMode(ordinal: Int) = prefs.setThemeMode(ordinal)
 }

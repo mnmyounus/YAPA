@@ -1,5 +1,6 @@
 package com.mnmyounus.yala.presentation.setup.lock
 
+import android.content.ActivityNotFoundException
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -68,16 +70,32 @@ fun ImageSequenceSetupScreen(
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Spacer(Modifier.height(24.dp))
+                val context = LocalContext.current
+                var pickerUnavailable by remember { mutableStateOf(false) }
                 Button(
                     modifier = Modifier.tvFocusable(),
                     onClick = {
-                        pickImages.launch(
-                            androidx.activity.result.PickVisualMediaRequest(
-                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                        try {
+                            pickImages.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                )
                             )
-                        )
+                        } catch (e: ActivityNotFoundException) {
+                            // No gallery/photos app available on this device (common on TV
+                            // boxes) - fail safely instead of crashing.
+                            pickerUnavailable = true
+                        }
                     }
                 ) { Text("Pick from gallery") }
+                if (pickerUnavailable) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "No photo gallery app is available on this device, so Image Sequence lock can't be set up here. Try PIN, Password, or Pattern instead.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
 
             ImageSetupPhase.CHOOSE_SEQUENCE -> {

@@ -12,6 +12,8 @@ interface LockRepository {
     suspend fun verifyRecoveryKey(plainKey: String): Boolean
     fun isOnboarded(): Flow<Boolean>
     suspend fun setOnboarded(complete: Boolean)
+    fun observeThemeMode(): Flow<Int>
+    suspend fun setThemeMode(ordinal: Int)
 }
 
 interface AppRepository {

@@ -14,10 +14,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mnmyounus.yala.domain.model.InstalledApp
+import com.mnmyounus.yala.util.isTvDevice
 import com.mnmyounus.yala.util.tvFocusable
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,6 +108,11 @@ private fun AppRow(
     onUnlock: (String) -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    // Most Android TV boxes have no gallery/photos app to fulfil the image
+    // picker Image Sequence lock needs, which throws ActivityNotFoundException
+    // and crashes the app. Hide that option there rather than offer something
+    // that will fail.
+    val isTv = LocalContext.current.isTvDevice()
 
     ListItem(
         headlineContent = { Text(app.label) },
@@ -136,9 +143,11 @@ private fun AppRow(
                         DropdownMenuItem(text = { Text("Lock with Pattern") }, onClick = {
                             onLockWithPattern(app.packageName); menuExpanded = false
                         })
-                        DropdownMenuItem(text = { Text("Lock with Image Sequence") }, onClick = {
-                            onLockWithImageSequence(app.packageName); menuExpanded = false
-                        })
+                        if (!isTv) {
+                            DropdownMenuItem(text = { Text("Lock with Image Sequence") }, onClick = {
+                                onLockWithImageSequence(app.packageName); menuExpanded = false
+                            })
+                        }
                     }
                 }
             }

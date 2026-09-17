@@ -13,12 +13,14 @@ import javax.inject.Inject
 
 /**
  * Watches window-state-change events to detect which app just came to the
- * foreground. When it's a locked app that hasn't yet been unlocked in this
- * "session" (tracked by [unlockedThisSession]), it launches the lock overlay
- * activity on top of it.
+ * foreground. Every time the foreground app changes to a *different* app
+ * (not just a different window within the same app), it checks whether that
+ * app is locked and, if so, shows the lock overlay - deliberately re-checking
+ * on every switch rather than remembering "already unlocked" across app
+ * switches, since that's the secure behavior an app locker needs.
  *
  * This never inspects window *content* for locked apps beyond the package
- * name of the event — it does not read text, screenshots, or keystrokes from
+ * name of the event - it does not read text, screenshots, or keystrokes from
  * other apps.
  */
 @AndroidEntryPoint
@@ -29,23 +31,17 @@ class AppLockAccessibilityService : AccessibilityService() {
     private val serviceJob = Job()
     private val serviceScope = CoroutineScope(Dispatchers.Default + serviceJob)
 
-    // Packages the user has already unlocked since their last home/screen-off event.
-    private val unlockedThisSession = mutableSetOf<String>()
-    private var lastPackage: String? = null
+    // Dedupes the flood of events Android can fire for the same still-
+    // foregrounded app, so we don't re-check/re-show the lock screen on
+    // every single one of them.
+    private var lastCheckedPackage: String? = null
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val pkg = event?.packageName?.toString() ?: return
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
-        if (pkg == packageName) return // ignore YALA's own UI
-        if (pkg == lastPackage) return
-        lastPackage = pkg
-
-        if (pkg == LAUNCHER_PACKAGE_HINT) {
-            unlockedThisSession.clear()
-            return
-        }
-
-        if (pkg in unlockedThisSession) return
+        if (pkg == packageName) return // ignore YALA's own UI, including the lock screen itself
+        if (pkg == lastCheckedPackage) return
+        lastCheckedPackage = pkg
 
         serviceScope.launch {
             if (appRepository.isAppLocked(pkg)) {
@@ -62,20 +58,10 @@ class AppLockAccessibilityService : AccessibilityService() {
         startActivity(intent)
     }
 
-    fun markUnlocked(packageName: String) {
-        unlockedThisSession.add(packageName)
-    }
-
     override fun onInterrupt() { /* no-op */ }
 
     override fun onDestroy() {
         super.onDestroy()
         serviceJob.cancel()
-    }
-
-    private companion object {
-        // Best-effort default launcher hint; real implementation resolves this
-        // dynamically via PackageManager.resolveActivity(ACTION_MAIN/CATEGORY_HOME).
-        const val LAUNCHER_PACKAGE_HINT = "com.android.launcher3"
     }
 }
