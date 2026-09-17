@@ -39,28 +39,6 @@ jobs:
       - name: Write local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
-      # Only on a version-tag push, and only if the four signing secrets are
-      # configured in the repo (Settings -> Secrets and variables -> Actions):
-      # KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD.
-      # Decodes the keystore and writes keystore.properties so build.gradle.kts
-      # picks it up automatically - see keystore.properties.example.
-      - name: Write release signing config
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "No KEYSTORE_BASE64 secret set - release build will be unsigned."
-            exit 0
-          fi
-          echo "$KEYSTORE_BASE64" | base64 -d > yala-release.jks
-          cat > keystore.properties << EOF
-          storeFile=yala-release.jks
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          EOF
-
       # Provisions a full Gradle installation and puts it on PATH as `gradle`,
       # with build-cache support - used instead of a committed gradlew wrapper.
       - name: Set up Gradle
@@ -71,10 +49,6 @@ jobs:
       - name: Assemble debug APK
         run: gradle assembleDebug --no-daemon --stacktrace
 
-      - name: Assemble signed release APK
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: gradle assembleRelease --no-daemon --stacktrace
-
       - name: Locate APK
         id: locate_apk
         run: |
@@ -82,27 +56,11 @@ jobs:
           echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
           echo "Found APK at $APK_PATH"
 
-      - name: Locate release APK
-        id: locate_release_apk
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          RELEASE_APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
-          echo "release_apk_path=$RELEASE_APK_PATH" >> "$GITHUB_OUTPUT"
-          echo "Found release APK at $RELEASE_APK_PATH"
-
       - name: Upload APK as build artifact
         uses: actions/upload-artifact@v4
         with:
           name: yala-debug-apk
           path: ${{ steps.locate_apk.outputs.apk_path }}
-          retention-days: 30
-
-      - name: Upload release APK as build artifact
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
-        with:
-          name: yala-release-apk
-          path: ${{ steps.locate_release_apk.outputs.release_apk_path }}
           retention-days: 30
 
       # Runs on every push to main: keeps a single rolling "latest" pre-release
@@ -123,20 +81,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Only runs when the workflow was triggered by a version tag (e.g. v1.0.0).
-      # Attaches the signed release APK when signing secrets were configured,
-      # falling back to the debug APK otherwise so the release is never empty.
+      # Only runs when the workflow was triggered by a version tag (e.g. v1.0.0)
       - name: Create GitHub Release with APK asset
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            ${{ steps.locate_release_apk.outputs.release_apk_path }}
+          files: ${{ steps.locate_apk.outputs.apk_path }}
           generate_release_notes: true
-          name: "YALA ${{ github.ref_name }}"
+          name: "YALA ${{ github.ref_name }} (debug, unsigned)"
           body: |
-            Automated release build of YALA (Your App Lock and Analyzer).
-            Signed with the project release key if KEYSTORE_BASE64 was configured; otherwise unsigned.
+            Automated debug build of YALA (Your App Lock and Analyzer).
+            This APK is **unsigned with a debug key** and is intended for testing/sideloading only.
             Developed by MNM YOUNUS.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
